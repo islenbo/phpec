@@ -1,0 +1,14 @@
+{
+    "name": "islenbo/phpec",
+    "description": "PHP企业级组件——PHP Enterprise Components",
+    "type": "library",
+    "license": "Apache License 2.0",
+    "authors": [
+        {
+            "name": "lenbo",
+            "email": "islenbo@qq.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
