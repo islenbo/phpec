@@ -234,4 +234,17 @@ class Entity implements
 
         return $result;
     }
+
+    /**
+     * @inheritDoc
+     * @throws \ReflectionException
+     */
+    public function convertClassType(string $className, ...$args)
+    {
+        $ref = new ReflectionClass($className);
+        /** @var Entity $newObj */
+        $newObj = $ref->newInstance(...$args);
+        $newObj->data = $this->data;
+        return $newObj;
+    }
 }
