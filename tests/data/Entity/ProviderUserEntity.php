@@ -10,6 +10,11 @@ class ProviderUserEntity
         $self = new UserEntity();
         $self->name = '自己';
         $self->age = 30;
+        $self->isVip = false;
+        $self->score = 100;
+        $self->hobby = [
+            '唱歌', '游泳'
+        ];
 
         $friend1 = new UserEntity();
         $friend1->name = '朋友1';

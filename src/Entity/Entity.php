@@ -13,8 +13,10 @@ use PHPEc\Support\Jsonable;
 use PHPEc\Support\JsonDeserializable;
 use PHPEc\Support\Stringable;
 use ReflectionClass;
+use ReflectionException;
+use stdClass;
 
-class Entity implements
+abstract class Entity implements
     JsonSerializable,
     IteratorAggregate,
     Countable,
@@ -26,29 +28,28 @@ class Entity implements
 {
 
     /**
-     * Attributes
+     * 属性数据
      *
      * @var array
      */
-    protected $data = [];
+    private $properties = [];
 
     /**
-     * 属性类型
-     * 如：
-     * [
-     *     'user' => UserVO::class, // 普通对象
-     *     'orders' => OrderVO::class . '[]', // 对象数组
-     * ]
+     * 支持转换的PHP基本数据类型
+     *
      * @var array
      */
-    protected $propertyType = [];
+    private $basicType = [
+        'string', 'int', 'float', 'bool',
+        // 'array' 数组是一个特殊类型，暂时不考虑进来
+    ];
 
     /**
      * @inheritDoc
      */
     public function getIterator()
     {
-        return new ArrayIterator($this->data);
+        return new ArrayIterator($this->getProperties());
     }
 
     /**
@@ -56,7 +57,7 @@ class Entity implements
      */
     public function count()
     {
-        return count($this->data);
+        return count($this->getProperties());
     }
 
     /**
@@ -72,7 +73,7 @@ class Entity implements
      */
     public function toArray(): array
     {
-        return $this->data;
+        return $this->getProperties();
     }
 
     /**
@@ -96,7 +97,7 @@ class Entity implements
      */
     public function __isset($name)
     {
-        return isset($this->data[$name]);
+        return isset($this->properties[$name]);
     }
 
     /**
@@ -104,7 +105,7 @@ class Entity implements
      */
     public function __unset($name)
     {
-        unset($this->data[$name]);
+        unset($this->properties[$name]);
     }
 
     /**
@@ -112,7 +113,28 @@ class Entity implements
      */
     public function __set($name, $value)
     {
-        $this->data[$name] = $value;
+        $propertyType = $this->propertyType();
+        if (isset($propertyType[$name])) {
+            $type = $propertyType[$name];
+            $isArray = substr($type, -2) == '[]';
+            if ($isArray) {
+                $className = substr($type, 0, strlen($type) - 2);
+            } else {
+                $className = $type;
+            }
+
+            if ($isArray) {
+                $arr = [];
+                foreach ($value as $item) {
+                    $arr[] = $this->setInstanceData($className, $item);
+                }
+                $this->properties[$name] = $arr;
+            } else {
+                $this->properties[$name] = $this->setInstanceData($className, $value);
+            }
+        } else {
+            $this->properties[$name] = $value;
+        }
     }
 
     /**
@@ -120,13 +142,12 @@ class Entity implements
      */
     public function &__get($name)
     {
-        return $this->data[$name];
+        return $this->properties[$name];
     }
 
     /**
      * @inheritDoc
      * @throws JsonException
-     * @throws \ReflectionException
      */
     public static function jsonObjectDeserialize(string $jsonObjectStr): JsonDeserializable
     {
@@ -136,7 +157,6 @@ class Entity implements
     /**
      * @inheritDoc
      * @throws JsonException
-     * @throws \ReflectionException
      */
     public static function jsonArrayDeserialize(string $jsonArrayStr): array
     {
@@ -150,38 +170,17 @@ class Entity implements
 
     /**
      * @inheritDoc
-     * @throws \ReflectionException
      */
-    public static function objectDecode($objectData): JsonDeserializable
+    public static function objectDecode($objectData, ?JsonDeserializable $context = null): JsonDeserializable
     {
-        $result = new static();
+        if (is_null($context)) {
+            $result = new static();
+        } else {
+            $result = $context;
+        }
+
         foreach ($objectData as $key => $value) {
-            /*
-             * TODO
-             * 1、当$result->propertyType[$key]不存在时，可以尝试从doc中获取类型
-             * 2、基础数据类型：int float string 等也需要类型转换
-             */
-
-            if (isset($result->propertyType[$key])) {
-                $className = $result->propertyType[$key];
-                $isArray = substr($className, -2) == '[]';
-                if ($isArray) {
-                    $className = substr($className, 0, strlen($className) - 2);
-                }
-
-                $refClass = new ReflectionClass($className);
-                if ($isArray) {
-                    $arr = [];
-                    foreach ($value as $item) {
-                        $arr[] = $result->setInstanceData($refClass->newInstance(), $item);
-                    }
-                    $result->$key = $arr;
-                } else {
-                    $result->$key = $result->setInstanceData($refClass->newInstance(), $value);
-                }
-            } else {
-                $result->$key = $value;
-            }
+            $result->__set($key, $value);
         }
 
         return $result;
@@ -189,7 +188,6 @@ class Entity implements
 
     /**
      * @inheritDoc
-     * @throws \ReflectionException
      */
     public static function arrayDecode(array $objectData): array
     {
@@ -202,21 +200,42 @@ class Entity implements
 
     /**
      * Set instance data
-     * @param $instance
+     * @param string $className
      * @param $data
      * @return mixed $instance
      */
-    private function setInstanceData($instance, $data)
+    private function setInstanceData($className, $data)
     {
-        if ($instance instanceof JsonDeserializable) {
-            $instance->objectDecode($data);
-        } else {
-            foreach ($data as $key => $value) {
-                $instance->$key = $value;
+        if (in_array($className, $this->basicType)) {
+            switch ($className) {
+                case 'string':
+                    return (string)$data;
+                case 'int':
+                    return (int)$data;
+                case 'float':
+                    return (float)$data;
+                case 'bool':
+                    return (bool)$data;
+                default:
+                    return $data;
             }
-        }
+        } else {
+            $result = new stdClass();
+            try {
+                $refClass = new ReflectionClass($className);
+                $result = $refClass->newInstance();
+            } catch (ReflectionException $e) {
+            }
 
-        return $instance;
+            if ($result instanceof JsonDeserializable) {
+                $result = $result->objectDecode($data);
+            } else {
+                foreach ($data as $key => $value) {
+                    $result->$key = $value;
+                }
+            }
+            return $result;
+        }
     }
 
     /**
@@ -237,14 +256,46 @@ class Entity implements
 
     /**
      * @inheritDoc
-     * @throws \ReflectionException
+     * @throws ReflectionException
      */
     public function convertClassType(string $className, ...$args)
     {
         $ref = new ReflectionClass($className);
-        /** @var Entity $newObj */
-        $newObj = $ref->newInstance(...$args);
-        $newObj->data = $this->data;
-        return $newObj;
+        /** @var Entity $result */
+        $result = $ref->newInstance(...$args);
+        $result->setProperties($this->getProperties());
+        return $result;
     }
+
+    /**
+     * @param array $property
+     */
+    public function setProperties(array $property): void
+    {
+        $this->properties = $property;
+    }
+
+    /**
+     * @return array
+     */
+    public function getProperties(): array
+    {
+        return $this->properties;
+    }
+
+    /**
+     * 属性类型
+     * 如：
+     * [
+     *     'user' => UserVO::class, // 普通对象
+     *     'orders' => OrderVO::class . '[]', // 对象数组
+     *     'size' => 'int', // PHP7内置类型
+     * ]
+     * @return array
+     */
+    protected function propertyType(): array
+    {
+        return [];
+    }
+
 }

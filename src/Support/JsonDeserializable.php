@@ -9,7 +9,7 @@ interface JsonDeserializable
      * Json Object string deserialize
      *
      * @param string $jsonObjectStr
-     * @return JsonDeserializable
+     * @return static
      */
     public static function jsonObjectDeserialize(string $jsonObjectStr): JsonDeserializable;
 
@@ -17,7 +17,7 @@ interface JsonDeserializable
      * Json Array string deserialize
      *
      * @param string $jsonArrayStr
-     * @return JsonDeserializable[]
+     * @return static[]
      */
     public static function jsonArrayDeserialize(string $jsonArrayStr): array;
 
@@ -25,9 +25,10 @@ interface JsonDeserializable
      * Iteratorable object decode
      *
      * @param array|object $objectData
-     * @return JsonDeserializable
+     * @param static|null $context
+     * @return static
      */
-    public static function objectDecode($objectData): JsonDeserializable;
+    public static function objectDecode($objectData, ?JsonDeserializable $context = null): JsonDeserializable;
 
     /**
      * Iteratorable array decode

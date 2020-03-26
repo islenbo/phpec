@@ -9,6 +9,7 @@ use PHPEc\Entity\Entity;
  * @property int $age
  * @property float $score
  * @property bool $isVip
+ * @property string[] $hobby
  * @property UserEntity $father
  * @property UserEntity $mother
  * @property UserEntity[] $kids
@@ -17,8 +18,18 @@ use PHPEc\Entity\Entity;
 class UserEntity extends Entity
 {
 
-    protected $propertyType = [
-        'father' => UserEntity::class,
-        'kids' => UserEntity::class . '[]',
-    ];
+    protected function propertyType(): array
+    {
+        return [
+            'name' => 'string',
+            'age' => 'int',
+            'score' => 'float',
+            'isVip' => 'bool',
+            'hobby' => 'string[]',
+            'father' => UserEntity::class,
+            'mother' => UserEntity::class,
+            'kids' => UserEntity::class . '[]',
+            'friends' => UserEntity::class . '[]',
+        ];
+    }
 }

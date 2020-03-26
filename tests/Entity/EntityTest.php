@@ -3,6 +3,7 @@
 namespace PHPEc\Tests\Entity;
 
 use PHPEc\Support\JsonDeserializable;
+use PHPEc\Tests\data\Entity\PropertyConflictEntity;
 use PHPEc\Tests\data\Entity\ProviderUserEntity;
 use PHPEc\Tests\data\Entity\UserEntity;
 use PHPUnit\Framework\TestCase;
@@ -172,9 +173,32 @@ class EntityTest extends TestCase
         $this->assertEquals(UserEntity::objectDecode($entity->toArray()), $entity);
     }
 
-    public function testObjectDecodePropertyType()
+    /**
+     * Test Object Decode Property Type
+     *
+     * @dataProvider providerEntity
+     * @param UserEntity $entity
+     * @throws \PHPEc\Exception\JsonException
+     * @throws \ReflectionException
+     */
+    public function testObjectDecodePropertyType(UserEntity $entity)
     {
-        $this->assertTrue(false, 'TODO 自定义属性匹配');
+        $decodeObj = UserEntity::jsonObjectDeserialize($entity->toJson());
+        $this->assertEquals($decodeObj->name, $entity->name);
+        $this->assertInternalType('string', $decodeObj->name);
+
+        $this->assertEquals($decodeObj->age, $entity->age);
+        $this->assertInternalType('int', $decodeObj->age);
+
+        $this->assertEquals($decodeObj->score, $entity->score);
+        if (!is_null($decodeObj->score)) {
+            $this->assertInternalType('float', $decodeObj->score);
+        }
+
+        $this->assertEquals($decodeObj->isVip, $entity->isVip);
+        if (!is_null($decodeObj->isVip)) {
+            $this->assertInternalType('bool', $decodeObj->isVip);
+        }
     }
 
     /**
@@ -188,6 +212,43 @@ class EntityTest extends TestCase
     public function testArrayDecode(UserEntity $entity1, UserEntity $entity2)
     {
         $this->assertEquals(UserEntity::arrayDecode([$entity1->toArray(), $entity2->toArray()]), [$entity1, $entity2]);
+    }
+
+    /**
+     * Test Property Conflict
+     */
+    public function testPropertyConflict()
+    {
+        $entity = new PropertyConflictEntity();
+        $entity->testKey = '张三';
+        $entity->test('test');
+
+        $this->assertEquals('test', $entity->properties);
+        $this->assertEquals('张三', $entity->testKey);
+        $this->assertEquals($entity->getProperties(), [
+            'testKey' => '张三',
+            'properties' => 'test',
+        ]);
+    }
+
+    /**
+     * Test Property Conflict Object Decode
+     *
+     * @throws \ReflectionException
+     */
+    public function testPropertyConflictObjectDecode()
+    {
+        $entity = PropertyConflictEntity::objectDecode([
+            'testKey' => '张三',
+            'properties' => 'test',
+        ]);
+
+        $this->assertEquals('test', $entity->properties);
+        $this->assertEquals('张三', $entity->testKey);
+        $this->assertEquals($entity->getProperties(), [
+            'testKey' => '张三',
+            'properties' => 'test',
+        ]);
     }
 
     /**
