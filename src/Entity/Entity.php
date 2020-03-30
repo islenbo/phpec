@@ -6,6 +6,7 @@ use ArrayIterator;
 use Countable;
 use IteratorAggregate;
 use JsonSerializable;
+use PHPEc\Constant\BasicType;
 use PHPEc\Exception\JsonException;
 use PHPEc\Support\Arrayable;
 use PHPEc\Support\Attributeable;
@@ -33,16 +34,6 @@ abstract class Entity implements
      * @var array
      */
     private $properties = [];
-
-    /**
-     * 支持转换的PHP基本数据类型
-     *
-     * @var array
-     */
-    private $basicType = [
-        'string', 'int', 'float', 'bool',
-        // 'array' 数组是一个特殊类型，暂时不考虑进来
-    ];
 
     /**
      * @inheritDoc
@@ -206,19 +197,8 @@ abstract class Entity implements
      */
     private function setInstanceData($className, $data)
     {
-        if (in_array($className, $this->basicType)) {
-            switch ($className) {
-                case 'string':
-                    return (string)$data;
-                case 'int':
-                    return (int)$data;
-                case 'float':
-                    return (float)$data;
-                case 'bool':
-                    return (bool)$data;
-                default:
-                    return $data;
-            }
+        if (in_array($className, BasicType::SUPPORT_TYPES)) {
+            return BasicType::convert($className, $data);
         } else {
             $result = new stdClass();
             try {
