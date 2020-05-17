@@ -107,6 +107,11 @@ abstract class Entity implements
         $propertyType = $this->propertyType();
         if (isset($propertyType[$name])) {
             $type = $propertyType[$name];
+            $isNullable = substr($type, 0, 1) == '?';
+            if ($isNullable) {
+                $type = substr($type, 1, strlen($type));
+            }
+
             $isArray = substr($type, -2) == '[]';
             if ($isArray) {
                 $className = substr($type, 0, strlen($type) - 2);
@@ -114,14 +119,18 @@ abstract class Entity implements
                 $className = $type;
             }
 
-            if ($isArray) {
-                $arr = [];
-                foreach ($value as $item) {
-                    $arr[] = $this->setInstanceData($className, $item);
-                }
-                $this->properties[$name] = $arr;
+            if ($isNullable && is_null($value)) {
+                $this->properties[$name] = $value;
             } else {
-                $this->properties[$name] = $this->setInstanceData($className, $value);
+                if ($isArray) {
+                    $arr = [];
+                    foreach ($value as $item) {
+                        $arr[] = $this->setInstanceData($className, $item);
+                    }
+                    $this->properties[$name] = $arr;
+                } else {
+                    $this->properties[$name] = $this->setInstanceData($className, $value);
+                }
             }
         } else {
             $this->properties[$name] = $value;

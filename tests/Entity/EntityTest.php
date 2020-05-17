@@ -135,7 +135,6 @@ class EntityTest extends TestCase
      * @dataProvider providerEntity
      * @param UserEntity $entity
      * @throws \PHPEc\Exception\JsonException
-     * @throws \ReflectionException
      */
     public function testJsonObjectDeserialize(UserEntity $entity)
     {
@@ -151,7 +150,6 @@ class EntityTest extends TestCase
      * @param UserEntity $entity1
      * @param UserEntity $entity2
      * @throws \PHPEc\Exception\JsonException
-     * @throws \ReflectionException
      */
     public function testJsonArrayDeserialize(UserEntity $entity1, UserEntity $entity2)
     {
@@ -166,7 +164,6 @@ class EntityTest extends TestCase
      *
      * @dataProvider providerEntity
      * @param UserEntity $entity
-     * @throws \ReflectionException
      */
     public function testObjectDecode(UserEntity $entity)
     {
@@ -179,7 +176,6 @@ class EntityTest extends TestCase
      * @dataProvider providerEntity
      * @param UserEntity $entity
      * @throws \PHPEc\Exception\JsonException
-     * @throws \ReflectionException
      */
     public function testObjectDecodePropertyType(UserEntity $entity)
     {
@@ -202,12 +198,28 @@ class EntityTest extends TestCase
     }
 
     /**
+     * Test Object Decode Property Type Nullable
+     *
+     * @dataProvider providerEntity
+     * @param UserEntity $entity
+     * @throws \PHPEc\Exception\JsonException
+     */
+    public function testObjectDecodePropertyTypeNullable(UserEntity $entity)
+    {
+        $decodeObj = UserEntity::jsonObjectDeserialize($entity->toJson());
+        $this->assertEquals($entity->name, $decodeObj->name);
+
+        $entity->name = null;
+        $decodeObj = UserEntity::jsonObjectDeserialize($entity->toJson());
+        $this->assertNull($decodeObj->name);
+    }
+
+    /**
      * Test Array Decode
      *
      * @dataProvider providerEntity
      * @param UserEntity $entity1
      * @param UserEntity $entity2
-     * @throws \ReflectionException
      */
     public function testArrayDecode(UserEntity $entity1, UserEntity $entity2)
     {
@@ -233,8 +245,6 @@ class EntityTest extends TestCase
 
     /**
      * Test Property Conflict Object Decode
-     *
-     * @throws \ReflectionException
      */
     public function testPropertyConflictObjectDecode()
     {

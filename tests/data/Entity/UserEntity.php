@@ -21,7 +21,7 @@ class UserEntity extends Entity
     protected function propertyType(): array
     {
         return [
-            'name' => 'string',
+            'name' => '?string',
             'age' => 'int',
             'score' => 'float',
             'isVip' => 'bool',
