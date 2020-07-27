@@ -170,6 +170,7 @@ abstract class Entity implements
 
     /**
      * @inheritDoc
+     * @return static
      */
     public static function objectDecode($objectData, ?JsonDeserializable $context = null): JsonDeserializable
     {
@@ -188,6 +189,7 @@ abstract class Entity implements
 
     /**
      * @inheritDoc
+     * @return static[]
      */
     public static function arrayDecode(array $objectData): array
     {
